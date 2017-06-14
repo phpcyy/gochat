@@ -131,6 +131,9 @@ func Echo(ws *websocket.Conn) {
 		switch reply.Action {
 		case "connect":
 			msg.Username, _ = getUserinfo(reply.Token)
+			msg.Action = "connected"
+			message, _ := json.Marshal(msg)
+			websocket.Message.Send(ws, string(message))
 			allUsers = append(allUsers, user{ws: ws, username: msg.Username})
 			continue
 		case "message":
