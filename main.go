@@ -107,6 +107,7 @@ type response struct {
 	Username   string `json:"username"`
 	Headimgurl string `json:"headimgurl"`
 	Message    string `json:"message"`
+	ToUsername string `json:"toUsername"`
 }
 
 func removeWs(ws *websocket.Conn) {
@@ -130,14 +131,19 @@ func Echo(ws *websocket.Conn) {
 		var msg response
 		switch reply.Action {
 		case "connect":
-			msg.Username, _ = getUserinfo(reply.Token)
-			msg.Action = "connected"
+			msg.Username, msg.Headimgurl = getUserinfo(reply.Token)
+			if len(msg.Username) > 0 {
+				msg.Action = "connected"
+			} else {
+				msg.Action = "close"
+			}
 			message, _ := json.Marshal(msg)
 			websocket.Message.Send(ws, string(message))
 			allUsers = append(allUsers, user{ws: ws, username: msg.Username})
 			continue
 		case "message":
 			msg.Message = reply.Message
+			msg.ToUsername = reply.To
 			msg.Username, msg.Headimgurl = getUserinfo(reply.Token)
 			msg.Action = "message"
 		case "close":
@@ -145,11 +151,19 @@ func Echo(ws *websocket.Conn) {
 			removeWs(ws)
 			break
 		}
-
-		for _, user := range allUsers {
-			message, _ := json.Marshal(msg)
-			websocket.Message.Send(user.ws, string(message))
+		message, _ := json.Marshal(msg)
+		if reply.To == "Go语言讨论组" {
+			for _, user := range allUsers {
+				websocket.Message.Send(user.ws, string(message))
+			}
+		} else {
+			for _, user := range allUsers {
+				if user.username == reply.To || user.username == msg.Username {
+					websocket.Message.Send(user.ws, string(message))
+				}
+			}
 		}
+
 	}
 }
 
