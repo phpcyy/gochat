@@ -2,4 +2,4 @@ config/*.json
 .idea
 debug
 
-!/storage/uploads/.gitkeep
+storage/uploads
